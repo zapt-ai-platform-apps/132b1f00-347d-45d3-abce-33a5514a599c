@@ -26,7 +26,7 @@ A web-based tool for translating subtitle files from English to Persian.
 ## Usage
 
 1. Enter your Google Gemini API key
-2. Select the AI model to use
+2. Select the AI model to use (Gemini Flash 2 recommended for faster translations)
 3. Upload an English SRT file
 4. Click "Translate to Persian" to start the translation
 5. Edit translations if needed

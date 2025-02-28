@@ -13,6 +13,7 @@ export interface ApiKeyConfig {
  * Available models for Google Gemini
  */
 export const GEMINI_MODELS = [
+  "gemini-flash-2",
   "gemini-pro",
   "gemini-pro-vision"
 ];

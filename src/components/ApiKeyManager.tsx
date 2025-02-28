@@ -109,6 +109,11 @@ const ApiKeyManager = ({ onConfigChange }: ApiKeyManagerProps) => {
             </option>
           ))}
         </select>
+        {model === "gemini-flash-2" && (
+          <p className="mt-1 text-green-600 text-sm">
+            Recommended: Gemini Flash 2 is faster for translations
+          </p>
+        )}
       </div>
       
       <p className="mt-4 text-sm text-gray-600">
