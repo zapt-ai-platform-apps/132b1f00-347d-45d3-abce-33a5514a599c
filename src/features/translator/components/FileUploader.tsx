@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { parseSubtitles } from '../utils/srtParser';
-import { Subtitle } from '../models/Subtitle';
+import { parseSubtitlesFromSRT } from '../../../models/Subtitle';
 
 interface FileUploaderProps {
-  onSubtitlesLoaded: (subtitles: Subtitle[]) => void;
+  onSubtitlesLoaded: (subtitles: ReturnType<typeof parseSubtitlesFromSRT>) => void;
   disabled: boolean;
 }
 
@@ -31,7 +30,7 @@ const FileUploader = ({ onSubtitlesLoaded, disabled }: FileUploaderProps) => {
     reader.onload = (event) => {
       const content = event.target?.result as string;
       try {
-        const subtitles = parseSubtitles(content);
+        const subtitles = parseSubtitlesFromSRT(content);
         if (subtitles.length === 0) {
           setError('No valid subtitles found in the file');
           return;

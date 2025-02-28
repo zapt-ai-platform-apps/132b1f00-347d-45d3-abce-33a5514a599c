@@ -1,37 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import usePrompt from '../../../hooks/usePrompt';
 
 interface TranslationPromptEditorProps {
-  onPromptChange: (prompt: string) => void;
   disabled: boolean;
 }
 
-const TranslationPromptEditor: React.FC<TranslationPromptEditorProps> = ({ 
-  onPromptChange, 
-  disabled 
-}) => {
-  const [prompt, setPrompt] = useState<string>(
-    `Translate the following English text to Persian. Keep the translation concise and accurate:
-
-"{{subtitle}}"`
-  );
-
-  useEffect(() => {
-    // Load saved prompt from localStorage if available
-    const savedPrompt = localStorage.getItem('translation_prompt');
-    if (savedPrompt) {
-      setPrompt(savedPrompt);
-      onPromptChange(savedPrompt);
-    } else {
-      // Use the default prompt
-      onPromptChange(prompt);
-    }
-  }, []);
+const TranslationPromptEditor = ({ disabled }: TranslationPromptEditorProps) => {
+  const { prompt, updatePrompt, isPromptValid } = usePrompt();
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newPrompt = e.target.value;
-    setPrompt(newPrompt);
-    onPromptChange(newPrompt);
-    localStorage.setItem('translation_prompt', newPrompt);
+    updatePrompt(e.target.value);
   };
 
   return (
@@ -41,13 +19,13 @@ const TranslationPromptEditor: React.FC<TranslationPromptEditorProps> = ({
         Customize the prompt sent to Gemini AI for translation. Use <code>{"{{subtitle}}"}</code> as a placeholder for the subtitle text.
       </p>
       <textarea
-        value={prompt}
+        value={prompt.template}
         onChange={handlePromptChange}
         disabled={disabled}
         className="w-full border border-gray-300 rounded-md p-3 text-sm font-mono min-h-[120px] box-border"
         placeholder="Enter your custom translation prompt..."
       />
-      {prompt.includes("{{subtitle}}") ? (
+      {isPromptValid() ? (
         <p className="text-xs text-green-600 mt-1">
           ✓ Prompt contains the subtitle placeholder
         </p>

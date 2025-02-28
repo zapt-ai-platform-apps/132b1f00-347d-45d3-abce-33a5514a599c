@@ -1,50 +1,31 @@
-import React, { useState } from 'react';
-import { ApiKeyConfig } from '../models/ApiKeyConfig';
-import { Subtitle } from '../models/Subtitle';
-import ApiKeyManager from './ApiKeyManager';
-import FileUploader from './FileUploader';
-import ProgressBar from './ProgressBar';
-import SubtitleDisplay from './SubtitleDisplay';
-import TranslationPromptEditor from './TranslationPromptEditor';
-import { translateSubtitles } from '../utils/translator';
-import { formatToSRT } from '../utils/srtFormatter';
-import * as Sentry from '@sentry/browser';
+import React from 'react';
+import useTranslation from '../../hooks/useTranslation';
+import useApiConfig from '../../hooks/useApiConfig';
+import usePrompt from '../../hooks/usePrompt';
+import ApiKeyManager from '../../features/translator/components/ApiKeyManager';
+import FileUploader from '../../features/translator/components/FileUploader';
+import ProgressBar from '../../features/translator/components/ProgressBar';
+import SubtitleDisplay from '../../features/translator/components/SubtitleDisplay';
+import TranslationPromptEditor from '../../features/translator/components/TranslationPromptEditor';
+import { formatSubtitlesToSRT } from '../../models/Subtitle';
 
-const TranslationManager = () => {
-  const [apiConfig, setApiConfig] = useState<ApiKeyConfig | null>(null);
-  const [subtitles, setSubtitles] = useState<Subtitle[]>([]);
-  const [isTranslating, setIsTranslating] = useState<boolean>(false);
-  const [progress, setProgress] = useState<number>(0);
-  const [editMode, setEditMode] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-  const [promptTemplate, setPromptTemplate] = useState<string>('');
+const TranslatorScreen = () => {
+  const {
+    subtitles,
+    isTranslating,
+    progress,
+    error,
+    editMode,
+    handleSubtitlesLoaded,
+    handleSubtitleChange,
+    startTranslation,
+    stopTranslation,
+    toggleEditMode,
+    setError
+  } = useTranslation();
 
-  const handleConfigChange = (config: ApiKeyConfig) => {
-    console.log('API configuration updated');
-    setApiConfig(config);
-  };
-
-  const handlePromptChange = (prompt: string) => {
-    console.log('Translation prompt updated');
-    setPromptTemplate(prompt);
-  };
-
-  const handleSubtitlesLoaded = (loadedSubtitles: Subtitle[]) => {
-    setSubtitles(loadedSubtitles);
-    setProgress(0);
-    setError('');
-  };
-
-  const handleSubtitleChange = (index: number, translatedText: string) => {
-    setSubtitles(currentSubtitles => {
-      const updatedSubtitles = [...currentSubtitles];
-      updatedSubtitles[index] = {
-        ...updatedSubtitles[index],
-        translatedText
-      };
-      return updatedSubtitles;
-    });
-  };
+  const { apiConfig } = useApiConfig();
+  const { prompt, isPromptValid } = usePrompt();
 
   const handleTranslate = async () => {
     if (!apiConfig) {
@@ -57,40 +38,12 @@ const TranslationManager = () => {
       return;
     }
     
-    if (!promptTemplate.includes("{{subtitle}}")) {
+    if (!isPromptValid()) {
       setError('The translation prompt must include {{subtitle}} placeholder');
       return;
     }
     
-    setIsTranslating(true);
-    setProgress(0);
-    setError('');
-    
-    try {
-      console.log('Starting translation process');
-      const translatedSubtitles = await translateSubtitles(
-        subtitles,
-        apiConfig,
-        promptTemplate,
-        (progressValue) => setProgress(progressValue)
-      );
-      
-      console.log('Translation completed');
-      setSubtitles(translatedSubtitles);
-    } catch (error) {
-      Sentry.captureException(error);
-      setError('Translation failed. Please check your API key and try again.');
-      console.error('Translation error:', error);
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
-  const handleStopTranslation = () => {
-    // This is a simple implementation - ideally you'd want to cancel in-flight requests
-    setIsTranslating(false);
-    setError('Translation canceled by user');
-    console.log('Translation canceled by user');
+    await startTranslation(apiConfig, prompt.template);
   };
 
   const handleSaveTranslation = () => {
@@ -100,7 +53,7 @@ const TranslationManager = () => {
     }
     
     console.log('Saving translated subtitles');
-    const srtContent = formatToSRT(subtitles, true);
+    const srtContent = formatSubtitlesToSRT(subtitles, true);
     const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
     
     // Create a temporary URL for the blob
@@ -120,16 +73,11 @@ const TranslationManager = () => {
     URL.revokeObjectURL(url);
   };
 
-  const toggleEditMode = () => {
-    setEditMode(!editMode);
-    console.log(`Edit mode ${!editMode ? 'enabled' : 'disabled'}`);
-  };
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl">
       <h1 className="text-2xl font-bold mb-6">English to Persian Subtitle Translator</h1>
       
-      <ApiKeyManager onConfigChange={handleConfigChange} />
+      <ApiKeyManager />
       
       <FileUploader 
         onSubtitlesLoaded={handleSubtitlesLoaded} 
@@ -139,7 +87,6 @@ const TranslationManager = () => {
       {subtitles.length > 0 && (
         <>
           <TranslationPromptEditor 
-            onPromptChange={handlePromptChange}
             disabled={isTranslating}
           />
           
@@ -148,9 +95,9 @@ const TranslationManager = () => {
           <div className="flex flex-wrap gap-2 mb-6">
             <button
               onClick={handleTranslate}
-              disabled={isTranslating || !apiConfig || !promptTemplate.includes("{{subtitle}}")}
+              disabled={isTranslating || !apiConfig || !isPromptValid()}
               className={`px-4 py-2 rounded-md text-white font-medium cursor-pointer ${
-                isTranslating || !apiConfig || !promptTemplate.includes("{{subtitle}}") 
+                isTranslating || !apiConfig || !isPromptValid() 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-green-600 hover:bg-green-700'
               }`}
@@ -160,7 +107,7 @@ const TranslationManager = () => {
             
             {isTranslating && (
               <button
-                onClick={handleStopTranslation}
+                onClick={stopTranslation}
                 className="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium cursor-pointer"
               >
                 Stop Translation
@@ -203,4 +150,4 @@ const TranslationManager = () => {
   );
 };
 
-export default TranslationManager;
+export default TranslatorScreen;

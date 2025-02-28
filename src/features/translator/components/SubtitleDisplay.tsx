@@ -1,5 +1,5 @@
 import React from 'react';
-import { Subtitle } from '../models/Subtitle';
+import { Subtitle } from '../../../models/Subtitle';
 
 interface SubtitleDisplayProps {
   subtitles: Subtitle[];

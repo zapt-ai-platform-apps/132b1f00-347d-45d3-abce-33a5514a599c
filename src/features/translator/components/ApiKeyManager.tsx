@@ -1,56 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { ApiKeyConfig, GEMINI_MODELS, validateApiKey } from '../models/ApiKeyConfig';
+import React from 'react';
+import { GEMINI_MODELS } from '../../../models/ApiKeyConfig';
+import useApiConfig from '../../../hooks/useApiConfig';
 
-interface ApiKeyManagerProps {
-  onConfigChange: (config: ApiKeyConfig) => void;
-}
-
-const ApiKeyManager = ({ onConfigChange }: ApiKeyManagerProps) => {
-  const [apiKey, setApiKey] = useState<string>('');
-  const [model, setModel] = useState<string>(GEMINI_MODELS[0]);
-  const [isSaved, setIsSaved] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
-
-  // Load saved API key from localStorage on component mount
-  useEffect(() => {
-    const savedKey = localStorage.getItem('gemini_api_key');
-    const savedModel = localStorage.getItem('gemini_model');
-    
-    if (savedKey) {
-      setApiKey(savedKey);
-      setIsSaved(true);
-    }
-    
-    if (savedModel && GEMINI_MODELS.includes(savedModel)) {
-      setModel(savedModel);
-    }
-    
-    if (savedKey && savedModel) {
-      onConfigChange({ key: savedKey, model: savedModel });
-    }
-  }, [onConfigChange]);
-
-  const handleSaveKey = () => {
-    if (!validateApiKey(apiKey)) {
-      setError('Please enter a valid API key');
-      return;
-    }
-    
-    localStorage.setItem('gemini_api_key', apiKey);
-    localStorage.setItem('gemini_model', model);
-    
-    onConfigChange({ key: apiKey, model });
-    setIsSaved(true);
-    setError('');
-  };
-
-  const handleClearKey = () => {
-    localStorage.removeItem('gemini_api_key');
-    localStorage.removeItem('gemini_model');
-    setApiKey('');
-    setIsSaved(false);
-    setError('');
-  };
+const ApiKeyManager = () => {
+  const {
+    apiKey,
+    model,
+    isSaved,
+    error,
+    setApiKey,
+    saveApiKey,
+    clearApiKey,
+    updateModel
+  } = useApiConfig();
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md mb-6">
@@ -70,14 +32,14 @@ const ApiKeyManager = ({ onConfigChange }: ApiKeyManagerProps) => {
           />
           {isSaved ? (
             <button
-              onClick={handleClearKey}
+              onClick={clearApiKey}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-r-md cursor-pointer"
             >
               Clear
             </button>
           ) : (
             <button
-              onClick={handleSaveKey}
+              onClick={saveApiKey}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-md cursor-pointer"
             >
               Save
@@ -94,13 +56,7 @@ const ApiKeyManager = ({ onConfigChange }: ApiKeyManagerProps) => {
         </label>
         <select
           value={model}
-          onChange={(e) => {
-            setModel(e.target.value);
-            if (isSaved) {
-              localStorage.setItem('gemini_model', e.target.value);
-              onConfigChange({ key: apiKey, model: e.target.value });
-            }
-          }}
+          onChange={(e) => updateModel(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 box-border"
         >
           {GEMINI_MODELS.map((modelOption) => (

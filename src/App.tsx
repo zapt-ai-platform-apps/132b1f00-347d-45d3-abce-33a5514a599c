@@ -1,12 +1,12 @@
 import React from 'react';
 import './index.css';
-import TranslationManager from './components/TranslationManager';
+import TranslatorScreen from './screens/translator';
 
 const App = () => {
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
       <div className="container mx-auto px-4 py-8">
-        <TranslationManager />
+        <TranslatorScreen />
         
         <footer className="mt-12 text-center text-sm text-gray-600">
           <div className="mb-2">
