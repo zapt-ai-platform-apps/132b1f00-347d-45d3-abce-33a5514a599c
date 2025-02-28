@@ -5,6 +5,7 @@ import ApiKeyManager from './ApiKeyManager';
 import FileUploader from './FileUploader';
 import ProgressBar from './ProgressBar';
 import SubtitleDisplay from './SubtitleDisplay';
+import TranslationPromptEditor from './TranslationPromptEditor';
 import { translateSubtitles } from '../utils/translator';
 import { formatToSRT } from '../utils/srtFormatter';
 import * as Sentry from '@sentry/browser';
@@ -16,10 +17,16 @@ const TranslationManager = () => {
   const [progress, setProgress] = useState<number>(0);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [promptTemplate, setPromptTemplate] = useState<string>('');
 
   const handleConfigChange = (config: ApiKeyConfig) => {
     console.log('API configuration updated');
     setApiConfig(config);
+  };
+
+  const handlePromptChange = (prompt: string) => {
+    console.log('Translation prompt updated');
+    setPromptTemplate(prompt);
   };
 
   const handleSubtitlesLoaded = (loadedSubtitles: Subtitle[]) => {
@@ -50,6 +57,11 @@ const TranslationManager = () => {
       return;
     }
     
+    if (!promptTemplate.includes("{{subtitle}}")) {
+      setError('The translation prompt must include {{subtitle}} placeholder');
+      return;
+    }
+    
     setIsTranslating(true);
     setProgress(0);
     setError('');
@@ -59,6 +71,7 @@ const TranslationManager = () => {
       const translatedSubtitles = await translateSubtitles(
         subtitles,
         apiConfig,
+        promptTemplate,
         (progressValue) => setProgress(progressValue)
       );
       
@@ -125,14 +138,19 @@ const TranslationManager = () => {
       
       {subtitles.length > 0 && (
         <>
+          <TranslationPromptEditor 
+            onPromptChange={handlePromptChange}
+            disabled={isTranslating}
+          />
+          
           <ProgressBar progress={progress} isTranslating={isTranslating} />
           
           <div className="flex flex-wrap gap-2 mb-6">
             <button
               onClick={handleTranslate}
-              disabled={isTranslating || !apiConfig}
+              disabled={isTranslating || !apiConfig || !promptTemplate.includes("{{subtitle}}")}
               className={`px-4 py-2 rounded-md text-white font-medium cursor-pointer ${
-                isTranslating || !apiConfig 
+                isTranslating || !apiConfig || !promptTemplate.includes("{{subtitle}}") 
                   ? 'bg-gray-400 cursor-not-allowed' 
                   : 'bg-green-600 hover:bg-green-700'
               }`}

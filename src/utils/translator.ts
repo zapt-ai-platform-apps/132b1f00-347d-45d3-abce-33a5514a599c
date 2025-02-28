@@ -7,12 +7,14 @@ import * as Sentry from '@sentry/browser';
  * Translates an array of subtitles from English to Persian
  * @param {Subtitle[]} subtitles - The subtitles to translate
  * @param {ApiKeyConfig} apiConfig - The API configuration to use
+ * @param {string} promptTemplate - The prompt template to use for translation
  * @param {function} onProgress - Callback function to report progress (0-100)
  * @returns {Promise<Subtitle[]>} Promise resolving to the translated subtitles
  */
 export async function translateSubtitles(
   subtitles: Subtitle[],
   apiConfig: ApiKeyConfig,
+  promptTemplate: string,
   onProgress: (progress: number) => void
 ): Promise<Subtitle[]> {
   try {
@@ -22,11 +24,18 @@ export async function translateSubtitles(
     const translatedSubtitles = [...subtitles];
     const totalSubtitles = subtitles.length;
     
+    // Make sure the prompt contains the subtitle placeholder
+    let validPrompt = promptTemplate;
+    if (!promptTemplate.includes("{{subtitle}}")) {
+      console.warn("Prompt template doesn't contain {{subtitle}} placeholder, appending subtitle at the end");
+      validPrompt = `${promptTemplate}\n\n"{{subtitle}}"`;
+    }
+    
     for (let i = 0; i < totalSubtitles; i++) {
       const subtitle = subtitles[i];
       
-      // Prepare prompt for translation
-      const prompt = `Translate the following English text to Persian. Keep the translation concise and accurate:\n\n"${subtitle.text}"`;
+      // Replace placeholder with actual subtitle text
+      const prompt = validPrompt.replace("{{subtitle}}", subtitle.text);
       
       // Call Gemini API
       const result = await model.generateContent(prompt);
